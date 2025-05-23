@@ -42,15 +42,7 @@ jobs:
 
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
-        run: |
-          composer validate --no-check-publish
-          composer install --prefer-dist --no-progress
-
-      - name: Generate APP_KEY
-        run: php artisan key:generate
-
-      - name: Set directory permissions
-        run: chmod -R 775 storage bootstrap/cache
+        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
 
       - name: Zip artifact for deployment
         run: zip -r release.zip . -x "node_modules/*" ".git/*"
