@@ -13,10 +13,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -24,12 +25,12 @@ jobs:
           php-version: '8.2'
 
       - name: Setup Node.js
-        uses: action/setup-node@v3
+        uses: actions/setup-node@v3
         with: 
           node-version: '18'
 
-      - name: install npm dependencies and build frontend
-        run: 
+      - name: Install npm dependencies and build frontend
+        run: |
           npm install
           npm run build
 
@@ -41,7 +42,15 @@ jobs:
 
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
-        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
+        run: |
+          composer validate --no-check-publish
+          composer install --prefer-dist --no-progress
+
+      - name: Generate APP_KEY
+        run: php artisan key:generate
+
+      - name: Set directory permissions
+        run: chmod -R 775 storage bootstrap/cache
 
       - name: Zip artifact for deployment
         run: zip -r release.zip . -x "node_modules/*" ".git/*"
@@ -59,8 +68,8 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
       - name: Download artifact from build job
@@ -70,7 +79,7 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -78,11 +87,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E64AB2940AC649E38989C7B0364F8BAD }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4997DDB5F0904A07AB35991FB7E16183 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'Praktikum-Ari-WEB-2'
           slot-name: 'Production'
           package: .
-          
